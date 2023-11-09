@@ -1,5 +1,22 @@
 import UserModel from "../Models/userModel.js";
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken'
+
+
+// get all user
+
+export const getAllUser = async (req, res) => {
+    try {
+        let users = await UserModel.find();
+        users = users.map((user) => {
+            const {password, ...otherDetails} = user._doc;
+            return otherDetails;
+        })
+        res.status(200).json(users)
+    } catch (error) {
+        res.status(500).json(error);
+    }
+}
 
 export const getUser = async(req, res) => {
     const id = req.params.id;
@@ -24,9 +41,9 @@ export const getUser = async(req, res) => {
 
 export const updateUser = async(req, res) => {
     const id = req.params.id;
-    const {currentUserId, currentUserAdminStatus, password} = req.body;
+    const {_id, password} = req.body;
 
-    if(id === currentUserId || currentUserAdminStatus){
+    if(id === _id){
         try {
             if(password){               // if there is password in body to update
                 const salt = await bcrypt.genSalt(10);  
@@ -34,12 +51,23 @@ export const updateUser = async(req, res) => {
             }
 
             const user = await UserModel.findByIdAndUpdate(id, req.body, {new: true}); // id, information that we want to change, for getting the new info
-            res.status(200).json(user);
+            
+            const token = jwt.sign(
+                { username: user.username, id: user._id },
+                process.env.JWT_KEY,
+                { expiresIn: "1h" }
+              );
+              console.log({user, token})
+            // res.status(200).json({user,token})
+            res.json(200, {user, token});
         } catch (error) {
+            console.log("erroooooorrr")
             res.status(500).json(error);
         }
+    }else{
+        res.status(403).json("Access Denied");
     }
-    res.status(403).json("Access Denied");
+    
 };
 
 
@@ -70,18 +98,18 @@ export const deleteUser = async(req, res) => {
 export const followUser = async(req, res) => {
     const id = req.params.id;                   // who should be followed
 
-    const {currentUserId} = req.body;           // who wants to follow
+    const {_id} = req.body;           // who wants to follow
 
-    if (currentUserId === id) {
+    if (_id === id) {
         res.status(403).json("Action forbidden")
     }
     else {
         try {
             const followUser = await UserModel.findById(id);      // who should be followed
-            const followingUser = await UserModel.findById(currentUserId);             // who wants to follow
+            const followingUser = await UserModel.findById(_id);             // who wants to follow
             
-            if(!followUser.followers.includes(currentUserId)){              // if current id is not in the users followers id
-                await followUser.updateOne({$push : {followers: currentUserId}})    // push the id to followers
+            if(!followUser.followers.includes(_id)){              // if current id is not in the users followers id
+                await followUser.updateOne({$push : {followers: _id}})    // push the id to followers
                 await followingUser.updateOne({$push : {following: id}})        // push the following users id to followings
                 res.status(200).json("User followed!");
 
@@ -101,18 +129,18 @@ export const followUser = async(req, res) => {
 export const UnFollowUser = async(req, res) => {
     const id = req.params.id;                   // who should be followed
 
-    const {currentUserId} = req.body;           // who wants to follow
+    const {_id} = req.body;           // who wants to follow
 
-    if (currentUserId === id) {
+    if (_id === id) {
         res.status(403).json("Action forbidden")
     }
     else {
         try {
             const followUser = await UserModel.findById(id);      // who should be followed
-            const followingUser = await UserModel.findById(currentUserId);             // who wants to follow
+            const followingUser = await UserModel.findById(_id);             // who wants to follow
             
-            if(followUser.followers.includes(currentUserId)){              // if current id is in the users followers id
-                await followUser.updateOne({$pull : {followers: currentUserId}})    // remove the id to followers
+            if(followUser.followers.includes(_id)){              // if current id is in the users followers id
+                await followUser.updateOne({$pull : {followers: _id}})    // remove the id to followers
                 await followingUser.updateOne({$pull : {following: id}})        // removw the following users id to followings
                 res.status(200).json("User unfollowed!");
 

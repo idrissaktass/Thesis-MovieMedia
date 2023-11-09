@@ -4,14 +4,20 @@ import UserModel from "../Models/userModel.js";
 
 //Create a new post
 
+// const user1 = await UserModel.findById(post1.userId);
+
 export const createPost = async(req, res)=> {
     const newPost = new PostModel(req.body);
-
+    // const {username} = req.body.username
+    
+    // const postId1 = req.params.id;
+    // const post1 = await PostModel.findById(newPost.userId);
     try {
         await newPost.save();
-        res.status(200).json("Post created");
+        res.status(200).json(newPost);
     } catch (error) {
         res.status(500).json(error);
+        console.log("sdfsfds")
     }
 }
 
@@ -36,6 +42,7 @@ export const updatePost = async(req, res) => {
     const {userId} = req.body;
 
     try {
+        
         const post = await PostModel.findById(postId);
         if (post.userId === userId) {
             await post.updateOne({$set : req.body});

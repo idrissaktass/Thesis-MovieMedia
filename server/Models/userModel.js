@@ -23,8 +23,8 @@ const UserSchema = mongoose.Schema(
             default: false
         },
 
-        profilePic: String,
-        coverPic: String,
+        profilePicture: String,
+        coverPicture: String,
         about: String,
         livesin: String,
         worksAt: String,
